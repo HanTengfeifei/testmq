@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Register, Client } from 'mq-web3';
 // import { onRpcRequest } from 'web3-mq-snap/dist/snap.js';
 
-const Child = (props) => {
+const Child = props => {
   const { client } = props;
 
   const [list, setList] = useState(null);
@@ -10,7 +10,7 @@ const Child = (props) => {
   const [text, setText] = useState('');
   const [messageList, setMessageList] = useState([]);
 
-  const handleEvent = (event) => {
+  const handleEvent = event => {
     if (event.type === 'channel.getList') {
       setList(client.channel.channelList);
     }
@@ -27,10 +27,7 @@ const Child = (props) => {
     if (event.type === 'message.new') {
       setText('');
       const list = client.message.messageList || [];
-      client.message.messageList = [
-        ...list,
-        { content: text, id: list.length + 1 },
-      ];
+      client.message.messageList = [...list, { content: text, id: list.length + 1 }];
       setMessageList([...list, { content: text, id: list.length + 1 }]);
     }
   };
@@ -52,7 +49,7 @@ const Child = (props) => {
     client.channel.queryChannels({ page: 1, size: 100 });
   }, []);
 
-  const handleChangeActive = (channel) => {
+  const handleChangeActive = channel => {
     client.channel.setActiveChannel(channel);
   };
 
@@ -93,7 +90,7 @@ const Child = (props) => {
             <span style={{ color: 'blue' }}>{activeChannel.topic}</span>
           </div>
           <div style={{ minHeight: 300, border: '1px solid #000' }}>
-            {messageList.map((item) => {
+            {messageList.map(item => {
               return <div key={item.id}>message: {item.content}</div>;
             })}
           </div>
@@ -101,7 +98,7 @@ const Child = (props) => {
             <input
               value={text}
               type="text"
-              onChange={(e) => {
+              onChange={e => {
                 setText(e.target.value);
               }}
             />
@@ -127,9 +124,10 @@ const App = () => {
   const [keys, setKeys] = useState(hasKeys);
 
   const signMetaMask = async () => {
-    const { PrivateKey, PublicKey } = await new Register(
-      'vAUJTFXbBZRkEDRE',
-    ).signMetaMask('https://www.web3mq.com');
+    const { PrivateKey, PublicKey } = await new Register('vAUJTFXbBZRkEDRE').signMetaMask(
+      'https://www.web3mq.com',
+      'dev-us-west-2.web3mq.com',
+    );
     localStorage.setItem('PRIVATE_KEY', PrivateKey);
     localStorage.setItem('PUBLICKEY', PublicKey);
     setKeys({ PrivateKey, PublicKey });
@@ -142,7 +140,9 @@ const App = () => {
       </div>
     );
   }
-  Client.init();
+  Client.init({
+    connectUrl: 'dev-us-west-2.web3mq.com',
+  });
   const client = Client.getInstance(keys);
 
   return (
