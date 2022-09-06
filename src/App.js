@@ -1,47 +1,50 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Register, Client } from 'mq-web3';
+import React, { useMemo, useState, useEffect } from "react";
+import { Register, Client } from "mq-web3";
 // import { onRpcRequest } from 'web3-mq-snap/dist/snap.js';
 
-const Child = props => {
+const Child = (props) => {
   const { client } = props;
 
   const [list, setList] = useState(null);
   const [activeChannel, setActiveChannel] = useState(null);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [messageList, setMessageList] = useState([]);
 
-  const handleEvent = event => {
-    if (event.type === 'channel.getList') {
+  const handleEvent = (event) => {
+    if (event.type === "channel.getList") {
       setList(client.channel.channelList);
     }
-    if (event.type === 'channel.activeChange') {
+    if (event.type === "channel.activeChange") {
       setActiveChannel(client.channel.activeChannel);
       client.message.getMessageList({
         page: 1,
         size: 20,
       });
     }
-    if (event.type === 'message.getList') {
+    if (event.type === "message.getList") {
       setMessageList(client.message.messageList);
     }
-    if (event.type === 'message.new') {
-      setText('');
+    if (event.type === "message.new") {
+      setText("");
       const list = client.message.messageList || [];
-      client.message.messageList = [...list, { content: text, id: list.length + 1 }];
+      client.message.messageList = [
+        ...list,
+        { content: text, id: list.length + 1 },
+      ];
       setMessageList([...list, { content: text, id: list.length + 1 }]);
     }
   };
 
   useEffect(() => {
-    client.on('channel.getList', handleEvent);
-    client.on('channel.activeChange', handleEvent);
-    client.on('message.getList', handleEvent);
-    client.on('message.new', handleEvent);
+    client.on("channel.getList", handleEvent);
+    client.on("channel.activeChange", handleEvent);
+    client.on("message.getList", handleEvent);
+    client.on("message.new", handleEvent);
     return () => {
-      client.off('channel.getList');
-      client.off('channel.activeChange');
-      client.off('message.getList');
-      client.off('message.new');
+      client.off("channel.getList");
+      client.off("channel.activeChange");
+      client.off("message.getList");
+      client.off("message.new");
     };
   }, [text]);
 
@@ -49,7 +52,7 @@ const Child = props => {
     client.channel.queryChannels({ page: 1, size: 100 });
   }, []);
 
-  const handleChangeActive = channel => {
+  const handleChangeActive = (channel) => {
     client.channel.setActiveChannel(channel);
   };
 
@@ -66,7 +69,7 @@ const Child = props => {
         {list.map((item, idx) => {
           return (
             <li
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
               key={item.topic}
               onClick={() => handleChangeActive(item)}
             >
@@ -87,10 +90,10 @@ const Child = props => {
         <div>
           <div>
             <b>activeChannel:</b>
-            <span style={{ color: 'blue' }}>{activeChannel.topic}</span>
+            <span style={{ color: "blue" }}>{activeChannel.topic}</span>
           </div>
-          <div style={{ minHeight: 300, border: '1px solid #000' }}>
-            {messageList.map(item => {
+          <div style={{ minHeight: 300, border: "1px solid #000" }}>
+            {messageList.map((item) => {
               return <div key={item.id}>message: {item.content}</div>;
             })}
           </div>
@@ -98,7 +101,7 @@ const Child = props => {
             <input
               value={text}
               type="text"
-              onChange={e => {
+              onChange={(e) => {
                 setText(e.target.value);
               }}
             />
@@ -113,24 +116,37 @@ const Child = props => {
 // Root components
 const App = () => {
   const hasKeys = useMemo(() => {
-    const PrivateKey = localStorage.getItem('PRIVATE_KEY') || '';
-    const PublicKey = localStorage.getItem('PUBLICKEY') || '';
+    const PrivateKey = localStorage.getItem("PRIVATE_KEY") || "";
+    const PublicKey = localStorage.getItem("PUBLICKEY") || "";
     if (PrivateKey && PublicKey) {
       return { PrivateKey, PublicKey };
     }
     return null;
   }, []);
-
+  const [fastestUrl, setFastUrl] = useState(null);
   const [keys, setKeys] = useState(hasKeys);
+  useEffect(() => {
+    init();
+  }, []);
+  const init = async () => {
+    const fastUrl = await Client.init({
+      connectUrl: localStorage.getItem("FAST_URL"),
+      app_key: "vAUJTFXbBZRkEDRE",
+    });
+    localStorage.setItem("FAST_URL", fastUrl);
+    setFastUrl(fastUrl);
+  };
 
   const signMetaMask = async () => {
-    const { PrivateKey, PublicKey } = await new Register('vAUJTFXbBZRkEDRE').signMetaMask(
-      'https://www.web3mq.com',
-      'dev-us-west-2.web3mq.com',
-    );
-    localStorage.setItem('PRIVATE_KEY', PrivateKey);
-    localStorage.setItem('PUBLICKEY', PublicKey);
+    const { PrivateKey, PublicKey } =
+      // await new Register(
+      //   "vAUJTFXbBZRkEDRE"
+      // ).signMetaMask("https://www.web3mq.com", "dev-us-west-2.web3mq.com");
+      await Client.register.signMetaMask("https://www.web3mq.com");
+    localStorage.setItem("PRIVATE_KEY", PrivateKey);
+    localStorage.setItem("PUBLICKEY", PublicKey);
     setKeys({ PrivateKey, PublicKey });
+    console.log("keys", PrivateKey, PublicKey);
   };
 
   if (!keys) {
@@ -140,9 +156,6 @@ const App = () => {
       </div>
     );
   }
-  Client.init({
-    connectUrl: 'dev-us-west-2.web3mq.com',
-  });
   const client = Client.getInstance(keys);
 
   return (
